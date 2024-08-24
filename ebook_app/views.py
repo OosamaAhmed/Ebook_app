@@ -1,4 +1,5 @@
  
+from pyexpat.errors import messages
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from  .serializers import EbookSerializer
@@ -27,7 +28,10 @@ def book(request, pk):
 # add new book 
 
 def add(request):
+
     if request.method== 'POST':
+        print(request.POST) 
+
         book_form=  EbooksForms(request.POST, request.FILES)
         if book_form.is_valid():
             book_form.save()
@@ -78,15 +82,34 @@ def api_one (request,pk):
     sr = EbookSerializer (all_book, many=False)
     return Response(sr.data)
 
-@api_view ( ['POST'] )
+@api_view(['POST'])
 def api_add(request):
-     
-    book_serializer = EbookSerializer(data=request.data)
-    if book_serializer.is_valid():
-        book_serializer.save()
-        return redirect('api')    
-    else : 
-        return Response(book_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    title = request.data.get('title')
+    summary = request.data.get('summary')
+    pages = request.data.get('pages')
+    category = request.data.get('category')
+    author = request.data.get('author_id')
+    pdf = request.FILES.get('pdf')
+
+    if not all([title, summary, pages, category, author, pdf]):
+        return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        ebook = EBooksModel(
+            title=title,
+            summary=summary,
+            pages=int(pages),  
+            category=category,
+            author_id=author,
+            pdf=pdf  
+        )
+        
+        ebook.save()
+
+        return Response({"detail": "Book added successfully."}, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['DELETE'])
 def api_del (request , pk):
@@ -98,9 +121,8 @@ def api_del (request , pk):
 @api_view(['POST'])
 def api_edit (request , pk):
     api_b = EBooksModel.objects.get(id = pk)
-
     book_sr=  EbookSerializer(data=request.data ,instance=api_b , partial=True)
     if book_sr.is_valid():
         book_sr.save()
-        return redirect('api')
+        return Response({"detail": "Book Edited successfully."}, status=status.HTTP_201_CREATED)
      

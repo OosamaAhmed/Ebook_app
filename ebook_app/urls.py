@@ -15,4 +15,3 @@ urlpatterns = [
     path('api/edit/<int:pk>', views.api_edit , name = 'api_edit'),
 
 ]
-urlpatterns = format_suffix_patterns(urlpatterns)
